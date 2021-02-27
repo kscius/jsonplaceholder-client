@@ -174,7 +174,7 @@ class JSONPlaceHolder
 
     public function Start(int $_start = 0) : JSONPlaceHolder
     {
-        if($_start > 0)
+        if($_start > -1)
         {
             $this->data['_start'] = $_start;
         }
