@@ -181,6 +181,15 @@ class JSONPlaceHolder
         return $this;
     }
 
+    public function End(int $_end = 0) : JSONPlaceHolder
+    {
+        if($_end > 0)
+        {
+            $this->data['_end'] = $_end;
+        }
+        return $this;
+    }
+
     public function ExcludeValue(string $_field,string $_value) : JSONPlaceHolder
     {
         if(strlen($_field) > 0 && strlen($_value) > 0)
