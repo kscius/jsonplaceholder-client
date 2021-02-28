@@ -9,7 +9,6 @@ class JSONPlaceHolder
     private $url            = '';
     private $data           = [];
     private $method         = 'GET';
-    private $endpoint       = [];
     private $totalCount     = 0;
     private $link           = [
         'first' => '',
@@ -25,51 +24,52 @@ class JSONPlaceHolder
         return $this->Call();
     }
 
-    public function Posts(int $_id = null) : JSONPlaceHolder
+    public function __call($_name,$_arguments)
     {
-        $this->url      = self::API_URL.'posts'.((int)$_id > 0 ? '/'.$_id : '');
-        $this->method   = 'GET';
-        $this->data     = [];
-        return $this;
+        $_method_name = strtolower($_name);
+        $_method_type = [substr($_method_name,0,4),substr($_method_name,0,5),substr($_method_name,0,6)];
+        //SavePosts(["title"=> 'foo', "bodys" => 'bar',"userId" => 1],2);
+        if($_method_type[0] === 'save')
+        {
+            return $this->Save(substr($_method_name,4),$_arguments[0] ?? [],$_arguments[1] ?? 0,$_arguments[2] ?? false);
+        }
+        //PatchPosts(["title"=> 'foo', "bodys" => 'bar',"userId" => 1],2);
+        if($_method_type[1] === 'patch')
+        {
+            return $this->Save(substr($_method_name,4),$_arguments[0] ?? [],$_arguments[1] ?? 0,true);
+        }
+        //DeletePosts(2);
+        if($_method_type[2] === 'delete')
+        {
+            $this->url      = self::API_URL.substr($_method_name,6).'/'.$_arguments[0] ?? 0;
+            $this->method   = 'DELETE';
+            return $this;
+        }
+        //Posts() or Comments(2)
+        if($_method_name === 'posts' || $_method_name === 'comments' || $_method_name === 'albums' || $_method_name === 'photos' || $_method_name === 'todos' || $_method_name === 'users')
+        {
+            $this->url      = self::API_URL.$_method_name.((int)($_arguments[0] ?? 0) > 0 ? '/'.$_arguments[0] : '');
+            $this->method   = 'GET';
+            $this->data     = [];
+            return $this;
+        }
+        //NestedPosts or NestedTodos
+        if($_method_type[2] === 'nested')
+        {
+            $this->url .= '/'.substr($_method_name,6);
+            return $this;
+        }
     }
 
-    public function Comments(int $_id = null) : JSONPlaceHolder
+    public function Save(string $_endpoint='',array $_data=[],int $_id=0,bool $_patch = false) : JSONPlaceHolder
     {
-        $this->url      = self::API_URL.'comments'.((int)$_id > 0 ? '/'.$_id : '');
-        $this->method   = 'GET';
-        $this->data     = [];
-        return $this;
-    }
-
-    public function Albums(int $_id = null) : JSONPlaceHolder
-    {
-        $this->url      = self::API_URL.'albums'.((int)$_id > 0 ? '/'.$_id : '');
-        $this->method   = 'GET';
-        $this->data     = [];
-        return $this;
-    }
-
-    public function Photos(int $_id = null) : JSONPlaceHolder
-    {
-        $this->url      = self::API_URL.'photos'.((int)$_id > 0 ? '/'.$_id : '');
-        $this->method   = 'GET';
-        $this->data     = [];
-        return $this;
-    }
-
-    public function Todos(int $_id = null) : JSONPlaceHolder
-    {
-        $this->url      = self::API_URL.'todos'.((int)$_id > 0 ? '/'.$_id : '');
-        $this->method   = 'GET';
-        $this->data     = [];
-        return $this;
-    }
-
-    public function Users(int $_id = null) : JSONPlaceHolder
-    {
-        $this->url      = self::API_URL.'users'.((int)$_id > 0 ? '/'.$_id : '');
-        $this->method   = 'GET';
-        $this->data     = [];
+        if(strlen($_endpoint) > 0 && count($_data) > 0){
+            $this->method   = $_patch ? 'PATCH' : ($_id > 0 ? 'PUT' : 'POST');
+            $this->url      = self::API_URL.'posts'.((int)$_id > 0 ? '/'.$_id : '');
+            $this->data     = $_data;
+        }else{
+            $this->_Refresh();
+        }
         return $this;
     }
 
@@ -139,36 +139,6 @@ class JSONPlaceHolder
         {
             $this->data['_expand'] = $_expand_with;
         }
-        return $this;
-    }
-
-    public function NestedPosts() : JSONPlaceHolder
-    {
-        $this->url .= '/posts';
-        return $this;
-    }
-
-    public function NestedComments() : JSONPlaceHolder
-    {
-        $this->url .= '/comments';
-        return $this;
-    }
-
-    public function NestedAlbums() : JSONPlaceHolder
-    {
-        $this->url .= '/albums';
-        return $this;
-    }
-
-    public function NestedPhotos() : JSONPlaceHolder
-    {
-        $this->url .= '/photos';
-        return $this;
-    }
-
-    public function NestedTodos() : JSONPlaceHolder
-    {
-        $this->url .= '/todos';
         return $this;
     }
 
@@ -250,31 +220,34 @@ class JSONPlaceHolder
 
     private function _Refresh()
     {
-        $this->url      = '';
-        $this->method   = 'GET';
-        $this->data     = [];
-        $this->data     = [];
+        $this->url          = '';
+        $this->method       = 'GET';
+        $this->data         = [];
+        $this->totalCount   = 0;
+        $this->link         = [
+            'first' => '',
+            'prev' => '',
+            'next' => '',
+            'last' => ''
+        ];
     }
 
     private function _CallAPI($method, $url, $data = false)
     {
         $curl = curl_init();
-
-        switch ($method)
-        {
-            case "POST":
-                curl_setopt($curl, CURLOPT_POST, 1);
-
-                if ($data)
-                    curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
-                break;
-            case "PUT":
-                curl_setopt($curl, CURLOPT_PUT, 1);
-                break;
-            default:
-                if ($data)
-                    $url = sprintf("%s?%s", $url, http_build_query($data));//echo $url;die();
+        curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $method);
+        if($data)
+        {   
+            if($method === 'GET')
+            {
+                $url = sprintf("%s?%s", $url, http_build_query($data));
+            }
+            else
+            {
+                curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+            }
         }
+        curl_setopt($curl, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($curl, CURLOPT_HEADER, 1);
@@ -283,22 +256,22 @@ class JSONPlaceHolder
         $this->_ValidateResponseHeaders($this->_GetHeaders(substr($result, 0, $header_size)));
         $body = substr($result, $header_size);
         curl_close($curl);
-        return [['link' => $this->link,'count' => $this->totalCount],'result' => $body];
+        return ['link' => $this->link,'count' => $this->totalCount,'result' => json_decode($body,true)];
     }
 
     private function _ValidateResponseHeaders(array $_headers)
     {
-        if(array_key_exists('Link',$_headers))
+        if(array_key_exists('link',$_headers))
         {
-            $Link = explode(',',$_headers['Link']);
+            $Link = explode(',',$_headers['link']);
             $this->link['first'] = str_replace('<','',explode('>;',$Link[0])[0]);
             $this->link['prev' ] = str_replace('<','',explode('>;',$Link[1])[0]);
             $this->link['next' ] = str_replace('<','',explode('>;',$Link[2])[0]);
             $this->link['last' ] = str_replace('<','',explode('>;',$Link[3])[0]);
         }
-        if(array_key_exists('X-Total-Count',$_headers))
+        if(array_key_exists('x-total-count',$_headers))
         {
-            $this->totalCount = $_headers['X-Total-Count'];
+            $this->totalCount = $_headers['x-total-count'];
         }
     }
 
