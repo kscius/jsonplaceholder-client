@@ -17,14 +17,7 @@ class JSONPlaceHolder
         'last' => ''
     ];
 
-    public function GetDataBase()
-    {
-        $this->method = 'GET';
-        $this->url = self::API_URL.'db';
-        return $this->Call();
-    }
-
-    public function __call($_name,$_arguments)
+    public function __call($_name,$_arguments) : JSONPlaceHolder
     {
         $_method_name = strtolower($_name);
         $_method_type = [substr($_method_name,0,4),substr($_method_name,0,5),substr($_method_name,0,6)];
@@ -59,6 +52,13 @@ class JSONPlaceHolder
             $this->url .= '/'.substr($_method_name,6);
             return $this;
         }
+    }
+
+    public function GetDataBase() : array
+    {
+        $this->method = 'GET';
+        $this->url = self::API_URL.'db';
+        return $this->Call();
     }
 
     public function Save(string $_endpoint='',array $_data=[],int $_id=0,bool $_patch = false) : JSONPlaceHolder
@@ -193,7 +193,7 @@ class JSONPlaceHolder
         return $this;
     }
 
-    public function Call()
+    public function Call() : array
     {
         if(strlen($this->url) > 40){
             $Result = [
@@ -232,7 +232,7 @@ class JSONPlaceHolder
         ];
     }
 
-    private function _CallAPI($method, $url, $data = false)
+    private function _CallAPI($method, $url, $data = false) : array
     {
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, $method);
@@ -275,7 +275,7 @@ class JSONPlaceHolder
         }
     }
 
-    private function _GetHeaders(string $respHeaders): array
+    private function _GetHeaders(string $respHeaders) : array
     {
         $headers = array();
         $headerText = substr($respHeaders, 0, strpos($respHeaders, "\r\n\r\n"));
