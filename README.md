@@ -1,5 +1,5 @@
 # jsonplaceholder-client
-Proof of concept for a Client for JSON Placeholder
+Proof of concept for a Client for [JSON Placeholder](https://github.com/typicode/jsonplaceholder "JSON PlaceHolder")
 
 
 # Incliuded test
